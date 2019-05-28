@@ -1,0 +1,13 @@
+sounds not lights, email and sms notifs, for data organization
+
+Modes: Experiement run, EtOH wash, regular wash
+
+Sampling 100 ml min
+sample 1 is 0 - 125 mL beep when done, runs continuously afterwards
+Sample 2 beeps to place jar, then 500 - 625 mL, beep when done.
+Small pause after challenge water, waits until 1 L has been passed and all floats are down, starts pure water
+End of that, moves funnels out of the way, purges lines with air, and flows wash water down and purges with air aft
+erwards.
+
+Have master arduino control experiement setup adn data management, have aux arduino control pumps and floats and weight management of
+efluent.
