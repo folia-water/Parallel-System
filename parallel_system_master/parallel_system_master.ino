@@ -23,15 +23,16 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 //some defs about the setup
 #define numFunnels 8
+#define numFunnelsTotal 8 //the setup max amount
 #define numValves 6
 
 //some defs for pinouts
 #define upDownSelect 1 //joystick y is A1
 #define leftRightSelect 0 //joystick x is A0
 #define selectPin 12 //joystick button is D12, PCINT6
-const int LEDpins[numFunnels+1] = {22, 23, 24, 25, 26, 27, 28, 29}; //pins for button LEDs, PORTA
+const int LEDpins[numFunnelsTotal+1] = {22, 23, 24, 25, 26, 27, 28, 29}; //pins for button LEDs, PORTA
 const int valvePins[6] = {44, 45, 46, 47 ,48 ,49}; //pins for valves
-const int buttonPins[numFunnels+1] = {62, 63, 64, 65, 66, 67, 68, 69}; //8 funnel buttons
+const int buttonPins[numFunnelsTotal+1] = {62, 63, 64, 65, 66, 67, 68, 69}; //8 funnel buttons
 #define buzzerPin 31 //for the beeper
 
 #define debounceTime 100  //time for button debounces
@@ -53,10 +54,10 @@ volatile int expSetupPointer = 0; //int to track the menus
 //3 is flow selectED, flows vols good, advances on button press
 //4 is experiment ready to go, advances on button press
 //5 is experiemnt running
-volatile boolean funnelStates[numFunnels+1]; //is the funnel on or off
+volatile boolean funnelStates[numFunnelsTotal+1]; //is the funnel on or off
 int funnelsActive; //are any funnel active?
 
-int flowVolumes[numFunnels+1]; //flow volumes variable, leave some space in array
+int flowVolumes[numFunnelsTotal+1]; //flow volumes variable, leave some space in array
 
 //vars for the experiment
 volatile boolean experimentRun = false; //is it running?
@@ -208,6 +209,7 @@ ISR (PCINT0_vect) { //when a button is pressed within PORT B
           washPointer = 1; //start the wash cycle
         }else if (settingsOption) { //if chose settings
           currentState = settingsPointer; //get the current menu screen
+          //todo
         }
       } 
     } //end select button if statements

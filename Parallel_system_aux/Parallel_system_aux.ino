@@ -11,28 +11,27 @@
 //some defs about the setup
 #define numFunnels 8
 
-//pinout definitions
-const int motorPins[numFunnels+1] = {11, 9, 8, 7, 6, 5, 3, 2}; //the pinouts of the setup
-const int floatPins[numFunnels+1] = {62, 63, 64, 65, 66, 67, 68, 69};
+//pinout definitions arrays start at 0 goto numFunnels, funnels are started at 1 so 1st entry is dummy
+const int motorPins[numFunnels+1] = {-1, 11, 9, 8, 7, 6, 5, 3, 2}; //the pinouts of the setup
+const int floatPins[numFunnels+1] = {-1, 62, 63, 64, 65, 66, 67, 68, 69};
+//use slightly larger arrays to avoid going out of bounds
 
 #define debounceTime 30  //time for button debounces
 volatile uint32_t lastInterrupt = 0; //used to measure button debounces
 
-//vars for detemrining which float is triggered 
+//vars for determining which float is triggered 
 volatile boolean floatStates[numFunnels+1]; //for storing float positions
-volatile boolean floatTriggered = false; //is a float activated
-volatile int inputStates;
 
 //vars for pumps
-volatile int influentVols[numFunnels+1]; //for storing volume going in
+volatile float influentVols[numFunnels+1]; //for storing volume going in
 volatile uint32_t pumpTimes[numFunnels+1]; //for motor run times
 volatile boolean checkVolume = false; //are we reading the volume of the influent
-const float motorFlowRate = 0.15; //flow rate of motors in mL/min
+const float motorFlowRate = 2.00; //flow rate of motors in mL/s
 
 void setup() {
   Serial.begin(9600); //for debugging
   
-  for (int i = 0; i <= numFunnels; i++) { //set i/o pins
+  for (int i = 1; i <= numFunnels; i++) { //set i/o pins
     pinMode(motorPins[i], OUTPUT);
     pinMode(floatPins[i], INPUT); //floats are on port K
     PCMSK2 |=  (1 << digitalPinToPCMSKbit(floatPins[i])); //enable interrupts 
@@ -49,17 +48,17 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i <= numFunnels; i++) { //scroll thru each pin and light up led
+  for (int i = 1; i <= numFunnels; i++) { //scroll thru each pin and light up led
     if (floatStates[i]) digitalWrite(motorPins[i], LOW); //if that float was activated turn off the motor to not overflow
     else digitalWrite(motorPins[i], HIGH); //otherwise this pump is on
     getInfluentVols(i); //track fluid addition
     
-    delay(300); //slow for debugging
+    //delay(300); //slow for debugging
   }
 }
 
 ISR (PCINT2_vect) { //when a button is pressed
-  //need to handle which button is pressed
+ //need to handle which button is pressed
  //debounce
   uint32_t interrupt_time = millis(); //store time state when interrupt triggered
   if (interrupt_time - lastInterrupt > debounceTime) { //if the last time triggered is more than debounce time before
@@ -68,26 +67,38 @@ ISR (PCINT2_vect) { //when a button is pressed
       // want A8-A15 digitalPinToPCMSKbit function for convenience
       //PCMSK2 register enables or disables pin change interrupts on bits selected, each bit is a pin  
     }
-    for (int i = 0; i <= numFunnels; i++) {
+    for (int i = 0; i <= numFunnels; i++) { //need to start loop 1 entry before to allow proper update on 1st funnel
       if (!digitalRead(floatPins[i])) { //if that float is pushed
+        ///* debugging
+        Serial.print("Float: ");
+        Serial.print(i);
+        Serial.print(" is on");
+        Serial.print(" Dispensed: ");
+        Serial.println(influentVols[i]);
+        //*/
         floatStates[i] = true; //this float is on
-        digitalWrite(motorPins[i], HIGH); //turn on that motor
+        digitalWrite(motorPins[i], LOW); //turn off that motor
       }else{
-        floatStates[i] = false; //that float is off, turn off the motor
-        digitalWrite(motorPins[i], LOW);
+        ///* debugging
+        Serial.print("Float: ");
+        Serial.print(i);
+        Serial.println(" is off ");
+        //*/
+        floatStates[i] = false; //that float is off, turn on the motor
+        digitalWrite(motorPins[i], HIGH);
+        pumpTimes[i] = millis(); //time pump started
       }
     }
     lastInterrupt = interrupt_time; //store interrupt trigger for next time
   }
 } 
 
-void getInfluentVols(int index) { //runs the motors and tracks volume added for each
-  checkVolume = !checkVolume;
-  if (checkVolume && !floatStates[index]) { //if time to check the volume and float isnt active
-    influentVols[index] += (millis() - pumpTimes[index])*motorFlowRate; //calculate chnage in volume
-    pumpTimes[index] = millis(); //update pump time for next cycle
+void getInfluentVols(int index) { //runs the motors and tracks volume added for each 
+  if (!floatStates[index]) { //if float isnt active means motor is running
+
+    //current time minus the last pump active time times the average flow rate of the motor gives total volume
+    influentVols[index] = ((millis() - pumpTimes[index])/1000)*motorFlowRate; //calculate change in volume
+    //convert to the time to secs
+    
   }
-  Serial.print(index);
-  Serial.print(" ");
-  Serial.println(influentVols[index]);
 }
